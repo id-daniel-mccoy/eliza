@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "es2022",
+    "module": "NodeNext",
     "lib": ["es2023", "dom"],
-    "moduleResolution": "bundler",
+    "moduleResolution": "NodeNext",
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": false,
@@ -13,13 +13,12 @@
     "allowImportingTsExtensions": true,
     "declaration": true,
     "emitDeclarationOnly": true,
-    "resolveJsonModule": true,
-    "noImplicitAny": false,
-    "allowJs": true,
-    "checkJs": false,
-    "noEmitOnError": false,
-    "moduleDetection": "force",
-    "allowArbitraryExtensions": true
+    "resolveJsonModule": true
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifiers": true,
+    "transpileOnly": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

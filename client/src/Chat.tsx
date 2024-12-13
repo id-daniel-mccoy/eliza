@@ -10,6 +10,12 @@ type TextResponse = {
     user: string;
 };
 
+// Helper function to determine if we're running on IC
+const isIC = () => {
+    return window.location.host.includes('.localhost:8001') ||
+           window.location.host.includes('.icp0.io');
+};
+
 export default function Chat() {
     const { agentId } = useParams();
     const [input, setInput] = useState("");
@@ -17,10 +23,16 @@ export default function Chat() {
 
     const mutation = useMutation({
         mutationFn: async (text: string) => {
-            const res = await fetch(`/api/${agentId}/message`, {
+            // Use the appropriate base URL depending on the environment
+            const baseUrl = isIC()
+                ? 'http://localhost:3000'
+                : '/api';
+
+            const res = await fetch(`${baseUrl}/${agentId}/message`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*",
                 },
                 body: JSON.stringify({
                     text,
@@ -28,6 +40,9 @@ export default function Chat() {
                     roomId: `default-room-${agentId}`,
                 }),
             });
+            if (!res.ok) {
+                throw new Error('Network response was not ok');
+            }
             return res.json() as Promise<TextResponse[]>;
         },
         onSuccess: (data) => {

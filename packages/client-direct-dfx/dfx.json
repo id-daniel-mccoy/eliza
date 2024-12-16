@@ -1,0 +1,21 @@
+{
+    "canisters": {
+        "client_direct_dfx": {
+            "type": "azle",
+            "main": "src/index.ts",
+            "custom": {
+                "build": "NODE_PATH=./node_modules pnpm exec azle compile client_direct_dfx",
+                "experimental": true,
+                "candid_gen": "http"
+            }
+        }
+    },
+    "networks": {
+        "local": {
+            "bind": "127.0.0.1:8001",
+            "type": "ephemeral"
+        }
+    },
+    "dfx": "0.21.0",
+    "version": 1
+}

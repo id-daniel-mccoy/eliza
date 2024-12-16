@@ -1,0 +1,36 @@
+{
+    "name": "@ai16z/client-direct-dfx",
+    "version": "0.1.5-alpha.5",
+    "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "dependencies": {
+        "@ai16z/eliza": "workspace:*",
+        "@ai16z/plugin-image-generation": "workspace:*",
+        "@anush008/tokenizers": "^0.0.0",
+        "@types/body-parser": "1.19.5",
+        "@types/cors": "2.8.17",
+        "@types/express": "5.0.0",
+        "azle": "0.24.1",
+        "body-parser": "1.20.3",
+        "camelcase": "8.0.0",
+        "cors": "2.8.5",
+        "fastembed": "1.14.1",
+        "multer": "1.4.5-lts.1",
+        "onnxruntime-node": "1.20.1"
+    },
+    "devDependencies": {
+        "tsup": "8.3.5",
+        "typescript": "^5.2.2"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint . --fix",
+        "prepare-ic": "bash ../../scripts/prepare-ic.sh",
+        "dfx:deploy": "dfx deploy client_direct_dfx"
+    },
+    "peerDependencies": {
+        "whatwg-url": "7.1.0"
+    }
+}

@@ -1,0 +1,5 @@
+.dfx
+.azle
+dist/
+node_modules/
+shims/

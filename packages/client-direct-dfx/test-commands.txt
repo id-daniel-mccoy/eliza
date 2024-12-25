@@ -1,0 +1,39 @@
+Azle Server Test Commands
+
+Assuming the canister server is deployed with dfx 22 on localhost:4943 with canister id: bkyz2-fmaaa-aaaaa-qaaaq-cai
+Tip: You can add -v to the curl command to run it in verbose for extra logging details.
+
+######################################################################################
+
+
+/http-request - Tests basic get query request:
+
+curl http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:4943/http-query
+
+
+######################################################################################
+
+
+/http-update - Tests basic post update request:
+
+curl -X POST -H "Content-Type: application/json" -d "{ \"hello\": \"world\" }" http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:4943/http-update
+
+
+######################################################################################
+
+
+/agents - A get endpoinit to retrieve the internal list of agentIds:
+
+curl http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:4943/agents
+
+
+######################################################################################
+
+
+/agentId/whisper: (Assuming an agentId)
+
+curl -X POST -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>" -F "file=@
+/home/secure-dev/Downloads/test.mp3" http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:4943/300c31c5-c34d-011e-925d-c0e8c735cfec/whisper
+
+
+######################################################################################

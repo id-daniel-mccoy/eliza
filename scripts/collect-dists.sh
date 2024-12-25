@@ -6,7 +6,7 @@ set -e
 ##############################################
 # Configuration
 ##############################################
-DIST_DIR="packages/client-direct-dfx/dist"
+DIST_DIR="packages/client-direct-dfx/azle/dist"
 
 echo "Cleaning and setting up destination directory: $DIST_DIR"
 rm -rf "$DIST_DIR"

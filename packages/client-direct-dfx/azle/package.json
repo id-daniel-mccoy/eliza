@@ -1,0 +1,25 @@
+{
+    "scripts": {
+        "build": "cd src/frontend && VITE_CANISTER_ORIGIN=http://$(dfx canister id backend).localhost:8000 vite build",
+        "pretest": "tsx test/pretest.ts",
+        "test": "jest"
+    },
+    "dependencies": {
+        "@anush008/tokenizers": "^0.0.0",
+        "azle": "^0.24.1",
+        "camelcase": "^8.0.0",
+        "express": "^4.18.2",
+        "fastembed": "1.14.1",
+        "lit": "^3.1.2",
+        "onnxruntime-node": "1.20.1"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.21",
+        "@types/multer": "^1.4.12",
+        "jest": "^29.7.0",
+        "ts-jest": "^29.1.4",
+        "tsx": "^4.15.7",
+        "typescript": "^5.2.2",
+        "vite": "^5.0.12"
+    }
+}

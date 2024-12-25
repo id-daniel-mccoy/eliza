@@ -11,10 +11,10 @@ import {
     composeContext,
     messageCompletionFooter,
     stringToUuid,
-} from "../dist/core";
+} from "../azle/dist/core";
 
-import type { Content, Memory } from "../dist/core";
-import { ModelClass } from "../dist/core";
+import type { Content, Memory } from "../azle/dist/core";
+import { ModelClass } from "../azle/dist/core";
 import { createApiRouter } from "./api"; // optional separate router if you want
 
 ////////////////////////////////////////////////////////////////////////////////

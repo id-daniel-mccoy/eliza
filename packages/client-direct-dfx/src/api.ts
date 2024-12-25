@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { AgentRuntime } from "../dist/core";
+import { AgentRuntime } from "../azle/dist/core"
 
 export function createApiRouter(agents: Map<string, AgentRuntime>) {
     const router = express.Router();

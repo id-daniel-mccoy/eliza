@@ -24,29 +24,24 @@ export default Server(
         app.use(bodyParser.json());
         app.use(bodyParser.urlencoded({ extended: true }));
 
-        elizaLogger.log("Server setup complete, initializing API routes...");
+        // elizaLogger.log("Server setup complete, initializing API routes...");
 
         // API router
         const apiRouter = createApiRouter(agents);
         app.use(apiRouter);
 
-        elizaLogger.log("API routes initialized.");
+        // elizaLogger.log("API routes initialized.");
 
         // Whisper endpoint
         app.post(
             "/:agentId/whisper",
             upload.single("file"),
             async (req, res) => {
-                elizaLogger.log("Received request on /:agentId/whisper");
-                elizaLogger.log("Headers: ", req.headers);
-                elizaLogger.log("File metadata: ", req.file);
-                elizaLogger.log("Agent ID: ", req.params.agentId);
 
                 const audioFile = req.file;
                 const agentId = req.params.agentId;
 
                 if (!audioFile) {
-                    elizaLogger.error("No audio file provided");
                     res.status(400).send("No audio file provided");
                     return;
                 }
@@ -62,7 +57,6 @@ export default Server(
                 }
 
                 if (!runtime) {
-                    elizaLogger.error("Agent not found: ", agentId);
                     res.status(404).send("Agent not found");
                     return;
                 }
@@ -74,8 +68,6 @@ export default Server(
                     });
                     formData.append("file", audioBlob, audioFile.originalname);
                     formData.append("model", "whisper-1");
-
-                    elizaLogger.log("Sending request to external API...");
 
                     const response = await fetch(
                         "https://api.openai.com/v1/audio/transcriptions",
@@ -89,10 +81,8 @@ export default Server(
                     );
 
                     const data = await response.json();
-                    elizaLogger.log("Received response from external API: ", data);
                     res.json(data);
                 } catch (error) {
-                    elizaLogger.error("Error processing whisper request: ", error);
                     res.status(500).send("Internal server error");
                 }
             }
@@ -133,19 +123,19 @@ export default Server(
         //     elizaLogger.success(`Server running at http://localhost:${port}/`);
         // });
 
-        elizaLogger.log("Server initialized and ready.");
+        // elizaLogger.log("Server initialized and ready.");
 
         return server; // Return the HTTP server
     },
     // Exposed canister functions.
-    {
-        startServer: query([], text, () => {
-            elizaLogger.log("startServer called.");
-            return "Server started successfully";
-        }),
-        stopServer: update([], text, () => {
-            elizaLogger.log("stopServer called.");
-            return "Server stopped successfully";
-        }),
-    }
+    // {
+    //     startServer: query([], text, () => {
+    //         elizaLogger.log("startServer called.");
+    //         return "Server started successfully";
+    //     }),
+    //     stopServer: update([], text, () => {
+    //         elizaLogger.log("stopServer called.");
+    //         return "Server stopped successfully";
+    //     }),
+    // }
 );

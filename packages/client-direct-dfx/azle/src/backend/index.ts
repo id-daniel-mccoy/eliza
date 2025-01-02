@@ -1,6 +1,6 @@
 import "./transform_stream_shim";
 
-import { query, Server, text, update, ic } from "azle/experimental";
+import { query, Server, text, update, ic, Null, empty, AzleEmpty, Void } from "azle/experimental";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -13,6 +13,9 @@ import { AgentRuntime } from "../../dist/core";
 
 // Move the agents map to the top-level scope
 const agents = new Map<string, AgentRuntime>();
+const logger = async(message: text) => {
+    ic.print(message);
+}
 
 export default Server(
     () => {
@@ -157,6 +160,7 @@ export default Server(
             console.log("This is a test canister update call.");
             return "This is a test canister update call.";
         }),
+
         // Server management functions - Replace with internal canister management API
 
         // startServer: update([], text, () => {
@@ -175,6 +179,7 @@ export default Server(
         //     agents.set(agentId, new AgentRuntime({ token }));
         //     return `Agent ${agentId} registered successfully.`;
         // }),
+
         unregisterAgent: update([text], text, (agentId) => {
             console.log(`Unregistering agent with ID: ${agentId}`);
             if (!agents.has(agentId)) {
@@ -188,5 +193,8 @@ export default Server(
             console.log("Listing all agent IDs: ", agentIds);
             return JSON.stringify({ agentIds });
         }),
+        message: query([text], text, async(message) => {
+            return message;
+        })
     }
 );

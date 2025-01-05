@@ -6,10 +6,13 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import multer from "multer";
 import { createServer } from "http"; // Import to create an http.Server
-import { stringToUuid } from "../../dist/core";
 import { settings } from "../../dist/core";
 import { createApiRouter } from "../../../src/api";
 import { AgentRuntime } from "../../dist/core";
+import { v4 as uuidv4 } from "uuid";
+import { composeContext } from "@ai16z/eliza";
+import { generateMessageResponse } from "@ai16z/eliza";
+import { messageCompletionFooter, ModelClass } from "@ai16z/eliza";
 
 // Move the agents map to the top-level scope
 const agents = new Map<string, AgentRuntime>();
@@ -118,33 +121,81 @@ export default Server(
         );
 
         // Message endpoint
-        // app.post("/:agentId/message", async (req, res) => {
-        //     const agentId = req.params.agentId;
-        //     const roomId = stringToUuid(
-        //         req.body.roomId ?? "default-room-" + agentId
-        //     );
-        //     const userId = stringToUuid(req.body.userId ?? "user");
+        app.post("/:agentId/message", async (req, res) => {
+            const agentId = req.params.agentId;
 
-        //     let runtime = agents.get(agentId);
+            const roomId = req.body.roomId ?? `default-room-${uuidv4()}`;
+            const userId = req.body.userId ?? uuidv4();
 
-        //     if (!runtime) {
-        //         runtime = Array.from(agents.values()).find(
-        //             (a) =>
-        //                 a.character.name.toLowerCase() ===
-        //                 agentId.toLowerCase()
-        //         );
-        //     }
+            let runtime = agents.get(agentId);
 
-        //     if (!runtime) {
-        //         res.status(404).send("Agent not found");
-        //         return;
-        //     }
+            if (!runtime) {
+                runtime = Array.from(agents.values()).find(
+                    (a) =>
+                        a.character.name.toLowerCase() ===
+                        agentId.toLowerCase()
+                );
+            }
 
-        //     const text = req.body.text;
+            if (!runtime) {
+                res.status(404).send("Agent not found");
+                return;
+            }
 
-        //     // Additional processing...
-        //     res.json({ response: `Processed message: ${text}` });
-        // });
+            const text = req.body.text;
+            const messageId = uuidv4();
+
+            const content = {
+                text,
+                attachments: [],
+                source: "direct",
+                inReplyTo: undefined,
+            };
+
+            const userMessage = {
+                content,
+                userId,
+                roomId,
+                agentId: runtime.agentId,
+            };
+
+            try {
+                const memory = {
+                    id: uuidv4() as `${string}-${string}-${string}-${string}-${string}`, // Cast to the expected type
+                    agentId: runtime.agentId,
+                    userId,
+                    roomId,
+                    content,
+                    createdAt: Date.now(),
+                };
+
+                await runtime.messageManager.createMemory(memory);
+
+                const state = await runtime.composeState(userMessage, {
+                    agentName: runtime.character.name,
+                });
+
+                // This part is trying to utilize tokenizer and onyxruntime to generate a response but the compiler is claiming there is no loader for them.
+
+                // const context = composeContext({
+                //     state,
+                //     template: `${messageCompletionFooter}`,
+                // });
+
+                // const response = await generateMessageResponse({
+                //     runtime,
+                //     context,
+                //     modelClass: ModelClass.SMALL,
+                // });
+
+                const response = req.body.text;
+
+                res.json({ response });
+            } catch (error) {
+                console.error("Error processing message request: ", error);
+                res.status(500).send("Internal server error");
+            }
+        });
 
         console.log("Server initialized and ready.");
 

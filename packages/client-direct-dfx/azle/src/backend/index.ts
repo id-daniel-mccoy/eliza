@@ -1,27 +1,46 @@
+// src/backend/index.ts
+
 import "./transform_stream_shim";
 
-import { query, Server, text, update, ic, Null, empty, AzleEmpty, Void } from "azle/experimental";
+import { query, Server, text, update, ic } from "azle/experimental";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import multer from "multer";
 import { createServer } from "http"; // Import to create an http.Server
-import { settings } from "../../dist/core";
-import { createApiRouter } from "../../../src/api";
-import { AgentRuntime } from "../../dist/core";
-import { v4 as uuidv4 } from "uuid";
-import { composeContext } from "@ai16z/eliza";
-import { generateMessageResponse } from "@ai16z/eliza";
-import { messageCompletionFooter, ModelClass } from "@ai16z/eliza";
+import { settings } from "../../dist/core"; // Adjust the path as necessary
+import { createApiRouter } from "../../../src/api"; // Adjust the path as necessary
+import { v4 as uuidv4 } from "uuid"; // Ensure this is installed
+import { composeContext } from "@ai16z/eliza"; // Adjust or remove based on actual usage
+import { generateMessageResponse } from "@ai16z/eliza"; // Adjust or remove based on actual usage
+import { messageCompletionFooter, ModelClass } from "@ai16z/eliza"; // Adjust or remove based on actual usage
+
+// New Imports for Agent Management
+import {
+    registerNewAgent,
+    unregisterExistingAgent,
+    listAgentIds,
+} from "./agent";
+
+import { db, initDb, preUpgradeHook, postUpgradeHook } from "./db";
 
 // Move the agents map to the top-level scope
-const agents = new Map<string, AgentRuntime>();
-const logger = async(message: text) => {
+const agents = new Map<string, any>(); // Update type as necessary
+
+const logger = async (message: text) => {
     ic.print(message);
-}
+};
 
 export default Server(
     () => {
+        // Initialize the database asynchronously
+        // Since Server expects a synchronous function, initialize without awaiting
+        // Lifecycle hooks will handle initialization
+        console.log("Server setup: initializing database asynchronously...");
+        initDb().catch((err) => {
+            console.error("Database initialization failed:", err);
+        });
+
         const app = express();
         const server = createServer(app); // Wrap express in an HTTP server
         const upload = multer({ storage: multer.memoryStorage() });
@@ -54,71 +73,71 @@ export default Server(
             res.json({ agentIds });
         });
 
-        // Whisper endpoint
-        app.post(
-            "/:agentId/whisper",
-            upload.single("file"),
-            async (req, res) => {
-                console.log("Received request on /:agentId/whisper");
-                console.log("Headers: ", req.headers);
-                console.log("File metadata: ", req.file);
-                console.log("Agent ID: ", req.params.agentId);
+        // // Whisper endpoint
+        // app.post(
+        //     "/:agentId/whisper",
+        //     upload.single("file"),
+        //     async (req, res) => {
+        //         console.log("Received request on /:agentId/whisper");
+        //         console.log("Headers: ", req.headers);
+        //         console.log("File metadata: ", req.file);
+        //         console.log("Agent ID: ", req.params.agentId);
 
-                const audioFile = req.file;
-                const agentId = req.params.agentId;
+        //         const audioFile = req.file;
+        //         const agentId = req.params.agentId;
 
-                if (!audioFile) {
-                    console.error("No audio file provided");
-                    res.status(400).send("No audio file provided");
-                    return;
-                }
+        //         if (!audioFile) {
+        //             console.error("No audio file provided");
+        //             res.status(400).send("No audio file provided");
+        //             return;
+        //         }
 
-                let runtime = agents.get(agentId);
+        //         let runtime = agents.get(agentId);
 
-                if (!runtime) {
-                    runtime = Array.from(agents.values()).find(
-                        (a) =>
-                            a.character.name.toLowerCase() ===
-                            agentId.toLowerCase()
-                    );
-                }
+        //         if (!runtime) {
+        //             runtime = Array.from(agents.values()).find(
+        //                 (a: any) =>
+        //                     a.character.name.toLowerCase() ===
+        //                     agentId.toLowerCase()
+        //             );
+        //         }
 
-                if (!runtime) {
-                    console.error("Agent not found: ", agentId);
-                    res.status(404).send("Agent not found");
-                    return;
-                }
+        //         if (!runtime) {
+        //             console.error("Agent not found: ", agentId);
+        //             res.status(404).send("Agent not found");
+        //             return;
+        //         }
 
-                try {
-                    const formData = new FormData();
-                    const audioBlob = new Blob([audioFile.buffer], {
-                        type: audioFile.mimetype,
-                    });
-                    formData.append("file", audioBlob, audioFile.originalname);
-                    formData.append("model", "whisper-1");
+        //         try {
+        //             const formData = new FormData();
+        //             const audioBlob = new Blob([audioFile.buffer], {
+        //                 type: audioFile.mimetype,
+        //             });
+        //             formData.append("file", audioBlob, audioFile.originalname);
+        //             formData.append("model", "whisper-1");
 
-                    console.log("Sending request to external API...");
+        //             console.log("Sending request to external API...");
 
-                    const response = await fetch(
-                        "https://api.openai.com/v1/audio/transcriptions",
-                        {
-                            method: "POST",
-                            headers: {
-                                Authorization: `Bearer ${runtime.token}`,
-                            },
-                            body: formData,
-                        }
-                    );
+        //             const response = await fetch(
+        //                 "https://api.openai.com/v1/audio/transcriptions",
+        //                 {
+        //                     method: "POST",
+        //                     headers: {
+        //                         Authorization: `Bearer ${runtime.token}`,
+        //                     },
+        //                     body: formData,
+        //                 }
+        //             );
 
-                    const data = await response.json();
-                    console.log("Received response from external API: ", data);
-                    res.json(data);
-                } catch (error) {
-                    console.error("Error processing whisper request: ", error);
-                    res.status(500).send("Internal server error");
-                }
-            }
-        );
+        //             const data = await response.json();
+        //             console.log("Received response from external API: ", data);
+        //             res.json(data);
+        //         } catch (error) {
+        //             console.error("Error processing whisper request: ", error);
+        //             res.status(500).send("Internal server error");
+        //         }
+        //     }
+        // );
 
         // Message endpoint
         app.post("/:agentId/message", async (req, res) => {
@@ -131,9 +150,8 @@ export default Server(
 
             if (!runtime) {
                 runtime = Array.from(agents.values()).find(
-                    (a) =>
-                        a.character.name.toLowerCase() ===
-                        agentId.toLowerCase()
+                    (a: any) =>
+                        a.character.name.toLowerCase() === agentId.toLowerCase()
                 );
             }
 
@@ -169,7 +187,7 @@ export default Server(
                     createdAt: Date.now(),
                 };
 
-                await runtime.messageManager.createMemory(memory);
+                await runtime.messageManager_createMemory(memory);
 
                 const state = await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
@@ -177,18 +195,18 @@ export default Server(
 
                 // This part is trying to utilize tokenizer and onyxruntime to generate a response but the compiler is claiming there is no loader for them.
 
-                // const context = composeContext({
-                //     state,
-                //     template: `${messageCompletionFooter}`,
-                // });
+                const context = composeContext({
+                    state,
+                    template: `${messageCompletionFooter}`,
+                });
 
-                // const response = await generateMessageResponse({
-                //     runtime,
-                //     context,
-                //     modelClass: ModelClass.SMALL,
-                // });
+                const response = await generateMessageResponse({
+                    runtime,
+                    context,
+                    modelClass: ModelClass.SMALL,
+                });
 
-                const response = req.body.text;
+                // const response = req.body.text;
 
                 res.json({ response });
             } catch (error) {
@@ -212,40 +230,163 @@ export default Server(
             return "This is a test canister update call.";
         }),
 
-        // Server management functions - Replace with internal canister management API
+        // Replace the commented-out registerAgent with the new implementation
+        registerAgent: update([text], text, async (agentName) => {
+            console.log(`Registering agent with name: ${agentName}`);
+            try {
+                const agentId = await registerNewAgent(agentName);
+                // Retrieve agent details from the database
+                if (!db) {
+                    throw new Error("Database not initialized.");
+                }
+                const stmt = db.prepare(`
+                    SELECT id, name, token FROM agents WHERE id = $id;
+                `);
+                stmt.bind({ $id: agentId });
+                let agentData: {
+                    id: string;
+                    name: string;
+                    token: string;
+                } | null = null;
+                if (stmt.step()) {
+                    const row = stmt.getAsObject();
+                    agentData = {
+                        id: row.id as string,
+                        name: row.name as string,
+                        token: row.token as string,
+                    };
+                }
+                stmt.free();
 
-        // startServer: update([], text, () => {
-        //     console.log("Server start requested.");
-        //     return "Server started successfully.";
-        // }),
-        // stopServer: update([], text, () => {
-        //     console.log("Server stop requested.");
-        //     return "Server stopped successfully.";
-        // }),
+                if (agentData) {
+                    agents.set(agentId, {
+                        character: { name: agentData.name },
+                        token: agentData.token,
+                        messageManager_createMemory: async (_msg: any) => {
+                            /* Implement if needed */
+                        },
+                        composeState: async (_msg: any, _opts: any) => {
+                            return {};
+                        },
+                    });
+                }
 
-        // The register agent function needs to use the actual AgentRuntime constructor to create a new runtime instance.
-
-        // registerAgent: update([text, text], text, (agentId, token) => {
-        //     console.log(`Registering agent with ID: ${agentId}`);
-        //     agents.set(agentId, new AgentRuntime({ token }));
-        //     return `Agent ${agentId} registered successfully.`;
-        // }),
-
+                return `Agent "${agentName}" registered with ID ${agentId}.`;
+            } catch (error: unknown) {
+                console.error("Error registering agent:", error);
+                if (error instanceof Error) {
+                    return `Failed to register agent: ${error.message}`;
+                } else {
+                    return "Failed to register agent: Unknown error";
+                }
+            }
+        }),
         unregisterAgent: update([text], text, (agentId) => {
             console.log(`Unregistering agent with ID: ${agentId}`);
-            if (!agents.has(agentId)) {
-                return `Agent ${agentId} does not exist.`;
+            try {
+                const success = unregisterExistingAgent(agentId);
+                if (success) {
+                    agents.delete(agentId);
+                    return `Agent ${agentId} unregistered successfully.`;
+                } else {
+                    return `Agent ${agentId} does not exist.`;
+                }
+            } catch (error: unknown) {
+                console.error("Error unregistering agent:", error);
+                if (error instanceof Error) {
+                    return `Failed to unregister agent: ${error.message}`;
+                } else {
+                    return `Failed to unregister agent: Unknown error`;
+                }
             }
-            agents.delete(agentId);
-            return `Agent ${agentId} unregistered successfully.`;
         }),
         listAgents: query([], text, () => {
-            const agentIds = Array.from(agents.keys());
-            console.log("Listing all agent IDs: ", agentIds);
-            return JSON.stringify({ agentIds });
+            try {
+                const agentsList = listAgentIds();
+                console.log("Listing agent IDs:", agentsList);
+                return JSON.stringify({ agentIds: agentsList });
+            } catch (error: unknown) {
+                console.error("Error listing agents:", error);
+                if (error instanceof Error) {
+                    return `Failed to list agents: ${error.message}`;
+                } else {
+                    return "Failed to list agents: Unknown error";
+                }
+            }
         }),
-        message: query([text], text, async(message) => {
+        message: query([text], text, async (message) => {
             return message;
-        })
+        }),
+
+        // Lifecycle hooks
+        init: update([], text, async () => {
+            console.log("Canister init: initializing database...");
+            try {
+                await initDb();
+                console.log("Database initialized.");
+                return "Initialization complete.";
+            } catch (error: unknown) {
+                console.error("Database initialization failed:", error);
+                if (error instanceof Error) {
+                    return `Initialization failed: ${error.message}`;
+                } else {
+                    return "Initialization failed: Unknown error";
+                }
+            }
+        }),
+        pre_upgrade: update([], text, () => {
+            console.log("pre_upgrade: saving database...");
+            try {
+                preUpgradeHook();
+                return "pre_upgrade complete.";
+            } catch (error: unknown) {
+                console.error("pre_upgrade failed:", error);
+                if (error instanceof Error) {
+                    return `pre_upgrade failed: ${error.message}`;
+                } else {
+                    return "pre_upgrade failed: Unknown error";
+                }
+            }
+        }),
+        post_upgrade: update([], text, async () => {
+            console.log("post_upgrade: restoring database...");
+            try {
+                await postUpgradeHook();
+                console.log("Database restored after upgrade.");
+                // Optionally, rehydrate the in-memory agents map from the database
+                if (!db) {
+                    throw new Error("Database not initialized after upgrade.");
+                }
+                const results = db.exec(`SELECT id, name, token FROM agents;`);
+                if (results.length > 0) {
+                    const rows = results[0].values;
+                    for (const row of rows) {
+                        const [id, name, token] = row as [
+                            string,
+                            string,
+                            string,
+                        ];
+                        agents.set(id, {
+                            character: { name },
+                            token,
+                            messageManager_createMemory: async (_msg: any) => {
+                                /* Implement if needed */
+                            },
+                            composeState: async (_msg: any, _opts: any) => {
+                                return {};
+                            },
+                        });
+                    }
+                }
+                return "post_upgrade complete.";
+            } catch (error: unknown) {
+                console.error("post_upgrade failed:", error);
+                if (error instanceof Error) {
+                    return `post_upgrade failed: ${error.message}`;
+                } else {
+                    return "post_upgrade failed: Unknown error";
+                }
+            }
+        }),
     }
 );

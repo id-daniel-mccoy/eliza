@@ -10,15 +10,51 @@ import { settings } from "../../dist/core";
 import { createApiRouter } from "../../../src/api";
 import { AgentRuntime } from "../../dist/core";
 import { v4 as uuidv4 } from "uuid";
-import { composeContext } from "@ai16z/eliza";
+// import { composeContext, stringToUuid } from "@ai16z/eliza";
 import { generateMessageResponse } from "@ai16z/eliza";
-import { messageCompletionFooter, ModelClass } from "@ai16z/eliza";
+import { ModelClass } from "@ai16z/eliza";
+import { IAgentRuntime, Content } from "@ai16z/eliza";
 
-// Move the agents map to the top-level scope
+// Moved the agents map to the top-level scope.
 const agents = new Map<string, AgentRuntime>();
 const logger = async(message: text) => {
     ic.print(message);
 }
+
+const messageCompletionFooter = `
+Response format should be formatted in a JSON block like this:
+\`\`\`json
+{ "user": "{{agentName}}", "text": "string", "action": "string" }
+\`\`\``;
+
+const messageHandlerTemplate = `
+# Action Examples
+{{actionExamples}}
+(Action examples are for reference only. Do not use the information from them in your response.)
+
+# Knowledge
+{{knowledge}}
+
+# Task: Generate dialog and actions for the character {{agentName}}.
+About {{agentName}}:
+{{bio}}
+{{lore}}
+
+{{providers}}
+
+{{attachments}}
+
+# Capabilities
+{{messageDirections}}
+
+{{recentMessages}}
+
+{{actions}}
+
+# Instructions: Write the next message for {{agentName}}.
+
+${messageCompletionFooter}
+`;
 
 export default Server(
     () => {
@@ -177,18 +213,45 @@ export default Server(
 
                 // This part is trying to utilize tokenizer and onyxruntime to generate a response but the compiler is claiming there is no loader for them.
 
-                // const context = composeContext({
-                //     state,
-                //     template: `${messageCompletionFooter}`,
-                // });
+                // Attempted fix using custom composeContext function.
 
-                // const response = await generateMessageResponse({
-                //     runtime,
-                //     context,
-                //     modelClass: ModelClass.SMALL,
-                // });
+                const composeContext = ({ state, template }: { state: Record<string, any>; template: string }): string => {
+                    return template.replace(/{{\s*([\w]+)\s*}}/g, (match, placeholder) => {
+                        return state.hasOwnProperty(placeholder) ? String(state[placeholder]) : '';
+                    });
+                };
 
-                const response = req.body.text;
+                const context = composeContext({
+                    state,
+                    template: messageHandlerTemplate,
+                });
+
+                // Attempted fix using custom generateMessageResponse function.
+
+                const customGenerateMessageResponse = async ({
+                    runtime,
+                    context,
+                    modelClass,
+                }: {
+                    runtime: IAgentRuntime;
+                    context: string;
+                    modelClass: string;
+                }): Promise<Content> => {
+                    // Simulate generating a response based on context
+                    ic.print("Generating custom message response...");
+                    return {
+                        text: `Simulated response for ${runtime.character.name} in class ${modelClass}: ${context}`,
+                        action: "simulateAction",
+                        source: "custom",
+                        attachments: [],
+                    };
+                };
+
+                const response = await customGenerateMessageResponse({
+                    runtime,
+                    context,
+                    modelClass: "small",
+                });
 
                 res.json({ response });
             } catch (error) {
